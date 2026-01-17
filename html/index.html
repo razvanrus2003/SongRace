@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keycloak Auth Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        .status {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .authenticated {
+            background: #d4edda;
+            color: darkgreen;
+            border: 1px solid #c3e6cb;
+        }
+        .not-authenticated {
+            background: #f8d7da;
+            color: darkred;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            background: blue;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: darkslateblue;
+        }
+        .info-box {
+            background: #e7f3ff;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            border: 1px solid #b3d9ff;
+        }
+        .info-box h3 {
+            margin-top: 0;
+        }
+        pre {
+            overflow-x: auto;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Keycloak Authentication</h1>
+        
+        <div id="status" class="status">Initializing...</div>
+        
+        <div id="controls" style="display: none;">
+            <button onclick="login()">Login</button>
+            <button onclick="logout()">Logout</button>
+            <button onclick="toggleToken()">Show/Hide Token</button>
+        </div>
+        
+        <div id="userInfo" class="info-box" style="display: none;">
+            <h3>User Info</h3>
+            <pre id="userInfoContent"></pre>
+        </div>
+        
+        <div id="tokenInfo" class="info-box" style="display: none;">
+            <h3>Access Token</h3>
+            <pre id="tokenContent"></pre>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/keycloak-js@25/dist/keycloak.min.js"></script>
+    <script>
+        const keycloak = new Keycloak({
+            url: "http://localhost:8080",
+            realm: "my-scd-realm",
+            clientId: "my-scd-client"
+        });
+
+        // Initialize Keycloak
+        keycloak.init({
+            onLoad: 'check-sso',
+            checkLoginIframe: false,
+            redirectUri: 'http://localhost:8081/'
+        }).then(function(authenticated) {
+            updateStatus(authenticated);
+            if (authenticated) {
+                loadUserInfo();
+            }
+            document.getElementById('controls').style.display = 'block';
+        }).catch(function(error) {
+            console.error('Failed to initialize:', error);
+            document.getElementById('status').innerHTML = 
+                '<span style="color: red;"> Failed to initialize: ' + error.message + '</span>';
+        });
+
+        function updateStatus(authenticated) {
+            const statusDiv = document.getElementById('status');
+            if (authenticated) {
+                statusDiv.className = 'status authenticated';
+                statusDiv.textContent = '✓ User is authenticated';
+            } else {
+                statusDiv.className = 'status not-authenticated';
+                statusDiv.textContent = '✗ Not authenticated';
+            }
+        }
+
+        function login() {
+            keycloak.login();
+        }
+
+        function logout() {
+            keycloak.logout();
+        }
+
+        function toggleToken() {
+            const tokenDiv = document.getElementById('tokenInfo');
+            const tokenContent = document.getElementById('tokenContent');
+            
+            if (tokenDiv.style.display === 'none') {
+                if (keycloak.token) {
+                    tokenContent.textContent = JSON.stringify({
+                        token: keycloak.token,
+                        tokenParsed: keycloak.tokenParsed
+                    }, null, 2);
+                    tokenDiv.style.display = 'block';
+                } else {
+                    alert('No token available. Please login first.');
+                }
+            } else {
+                tokenDiv.style.display = 'none';
+            }
+        }
+
+        function loadUserInfo() {
+            keycloak.loadUserProfile().then(function(profile) {
+                const userInfoDiv = document.getElementById('userInfo');
+                const userInfoContent = document.getElementById('userInfoContent');
+                
+                userInfoContent.textContent = JSON.stringify({
+                    username: profile.username,
+                    email: profile.email,
+                    firstName: profile.firstName,
+                    lastName: profile.lastName
+                }, null, 2);
+                
+                userInfoDiv.style.display = 'block';
+            }).catch(function(error) {
+                console.error('Failed to load user profile:', error);
+            });
+        }
+    </script>
+</body>
+</html>
+
+

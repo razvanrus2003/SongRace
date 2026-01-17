@@ -1,0 +1,69 @@
+{% extends "base_page_template.html" %}
+
+{% block title %}Lobbies{% endblock %}
+
+{% block content %}
+<script>
+function checkLobbyStatus() {
+    lobbyId = {{ current_lobby.id if current_lobby else 'null' }};
+    if (lobbyId == undefined || lobbyId == null) {
+        return;
+    }
+    fetch("{{ url_for('lobby.lobby_status', lobby_id=0) }}".replace('0', lobbyId))
+    .then(response => response.json())
+    .then(data => {
+        if (data.active != 0) {
+            window.location.href = '{{ url_for("game") }}';
+        }
+    });
+
+}
+setInterval(checkLobbyStatus, 500);
+
+</script>
+{% if current_lobby %}
+   <div class="lobbies-container">
+         <h2>You are currently in the {{ current_lobby.name }} lobby:</h2>
+            <h3>Players in this lobby:</h3>
+            {% for player in players_in_lobby %}
+                <p>{{ player.username }}</p>
+            {% endfor %}
+            {% if username == current_lobby.username %}
+                <form action="{{ url_for('game.game_start') }}" method="post" style="display:inline;">
+                        <button type="submit">Start Game</button>
+                </form>
+            {% endif %}
+    </div>
+{% endif %}
+<div class="lobbies-container">
+    <h1>Lobbies</h1>
+    
+    {% if lobbies %}
+        <div class="lobbies-list">
+            {% for lobby in lobbies %}
+                <div class="lobby-card">
+                    <h2>{{ lobby.name }}</h2>
+                    <p>Created by: {{ lobby.username }}</p>
+                    <form action="{{ url_for('lobby.lobby_join', lobby_id=lobby.id) }}" method="post" style="display:inline;">
+                        <button type="submit">Join Lobby</button>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No lobbies available yet.</p>
+    {% endif %}
+
+    <form action="{{ url_for('lobby.lobby_create') }}" method="post">
+        <h2>Create New Lobby</h2>
+        <label for="name">Lobby Name:</label>
+        <input type="text" id="name" name="name" required>
+        
+        <!-- <label for="description">Description:</label>
+        <textarea id="description" name="description" required></textarea> -->
+        
+        <button type="submit">Create Lobby</button>
+    </form>
+    <a href='/'>Home</a>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base_page_template.html" %}
+
+{% block title %}Lobbies{% endblock %}
+
+{% block content %}
+<div class="library-container">
+    <h1>Songs</h1>
+    
+    {% if songs %}
+        <div class="library-list">
+            {% for song in songs %}
+                <div class="library-card">
+                    <h2>{{ song.name }}</h2>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No songs available yet.</p>
+    {% endif %}
+
+    <form action="{{ url_for('add_song') }}" method="post" class="song-form" enctype="multipart/form-data" style="max-width: 500px; margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+        <h2 style="margin-bottom: 20px;">Add New Song</h2>
+        <div class="form-group" style="margin-bottom: 15px;">
+            <label for="name" style="display: block; margin-bottom: 5px; font-weight: bold;">Song Name:</label>
+            <input type="text" id="name" name="name" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <div class="form-group" style="margin-bottom: 15px;">
+            <label for="artist" style="display: block; margin-bottom: 5px; font-weight: bold;">Artist:</label>
+            <input type="text" id="artist" name="artist" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <div class="form-group" style="margin-bottom: 15px;">
+            <label for="lyrics" style="display: block; margin-bottom: 5px; font-weight: bold;">Lyrics:</label>
+            <textarea id="lyrics" name="lyrics" required rows="6" cols="50" style="resize: both; min-height: 150px; min-width: 300px;"></textarea>
+        </div>
+        <div class="form-group" style="margin-bottom: 15px;">
+            <label for="file" style="display: block; margin-bottom: 5px; font-weight: bold;">File:</label>
+            <input type="file" id="file" name="file" style="padding: 8px;">
+        </div>
+        <button type="submit" style="background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Add Song</button>
+    </form>
+{% endblock %}

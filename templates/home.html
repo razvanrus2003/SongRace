@@ -1,0 +1,21 @@
+{% extends "base_page_template.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+{% if user %}
+    <h1>Welcome, {{ username }}!</h1>
+    <p><strong>Roles:</strong> {{ role_info }}</p>
+    <div>
+        <a href='/user'>User Dashboard</a>
+        <a href='/admin'>Admin Dashboard</a>
+        <a href='/logout'>Logout</a>
+        <a href='/lobbies'>Lobbies</a>
+        <a href='/library'>Library</a>
+    </div>
+{% else %}
+    <h1>Welcome to the Song Racer</h1>
+    <p>Login using your university account.</p>
+    <a href='/login'>Login with Keycloak</a>
+{% endif %}
+{% endblock %}

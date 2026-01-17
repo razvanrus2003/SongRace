@@ -1,0 +1,84 @@
+{% extends "base_page_template.html" %}
+
+{% block title %}Lobbies{% endblock %}
+
+{% block content %}
+
+<audio id="player" preload="metadata">
+    <source src="{{ url_for('get_song', song_id=song.id) }}" type="audio/mpeg">
+</audio>
+
+<div class="lobbies-container">
+    <script>
+            let response;
+            function sendUpdate() {
+                const lyrics = document.getElementById('lyrics').value;
+
+                response = fetch('/game/update', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({lyrics: lyrics,
+                        songId: {{ song.id }}
+                    })
+                });
+                startGame();
+            }
+
+            async function sendReady() {
+                response = fetch('/game/ready', {
+                    method: 'POST',
+                });
+            }
+            
+            async function startGame() {
+                if (!response) {
+                    return;
+                }
+                const player = document.getElementById("player");
+                response.then(res => res.clone().json())
+                .then(data => {
+                    document.getElementById('score').innerText = (data.score);
+                   if (data.status == 2 && player.paused) {
+                        player.play();
+                   }
+
+                   if (data.players) {
+                        let players_list = "Players:\n";
+                        data.players.forEach(p => {
+                            players_list += p.username + ": " + p.score + "\n";
+                        });
+                        document.getElementById('list').innerText = players_list;
+                   }
+                });
+            }
+
+            setInterval(sendUpdate, 1000);
+            
+    </script>
+    <label for="Title">{{ song.name }}</label>
+    <label for="Artist">{{ song.artist }}</label>
+    <button onclick="sendReady()">Ready</button>
+    <form >
+        <textarea id="lyrics" name="lyrics" rows="6" cols="50" required style="resize: both; min-height: 150px; min-width: 300px;" oninput="sendUpdate()"></textarea>
+        
+        
+        <!-- <label for="description">Description:</label>
+            <textarea id="description" name="description" required></textarea> -->
+            
+            <!-- <button type="submit">Create Lobby</button> -->
+        </form>
+        {% if role == 'admin' %}
+        <p>Answer:
+            {{ song.lyrics }}
+        </p>
+        {% endif %}
+    <p>
+        Your current score: <span id="score">0</span>
+    </p>
+
+    <p>
+        <span id="list"></span>
+    </p>
+    <a href='/lobby/leave'>Home</a>
+</div>
+{% endblock %}

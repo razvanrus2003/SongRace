@@ -1,0 +1,116 @@
+
+networks:
+  mynet:
+    driver: overlay
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    networks:
+      - mynet
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    command: >
+      postgres
+      -c log_statement=all
+      -c log_duration=on
+      -c log_connections=on
+      -c log_disconnections=on
+      -c log_line_prefix='%m [%p] %u@%d '
+    ports:
+      - "5432:5432"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0.0
+    networks:
+      - mynet
+    command: start-dev --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_PORT: 5432
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    volumes:
+      - ./keycloak-config:/opt/keycloak/data/import
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    networks:
+      - mynet
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 1g
+
+  myapp:
+    image: myapp
+    command: python app.py
+    networks:
+      - mynet
+    volumes:
+      - .:/app
+    ports:
+      - "5000:5000"
+    depends_on:
+      - keycloak
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: keycloak
+      DB_USER: keycloak
+      DB_PASSWORD: keycloak
+    deploy:
+      replicas: 3
+
+  mylibrary:
+    image: mylibrary
+    command: python library.py
+    volumes:
+      - .:/audio
+    networks:
+      - mynet
+    ports:
+      - "2000:2000"
+    deploy:
+      replicas: 1
+
+  grafana:
+    image: grafana/grafana:latest
+    networks:
+      - mynet
+    deploy:
+      replicas: 1
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+
+volumes:
+  postgres_data:
+  esdata:
+  grafana_data:
+
