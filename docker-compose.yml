@@ -65,13 +65,16 @@ services:
 
   myapp:
     image: myapp
+    build:
+      context: .
+      dockerfile: Dockerfile
     command: python app.py
     networks:
       - mynet
     volumes:
       - .:/app
-    ports:
-      - "5000:5000"
+    # ports:
+      # - "5000:5000"
     depends_on:
       - keycloak
     environment:
@@ -80,18 +83,28 @@ services:
       DB_NAME: keycloak
       DB_USER: keycloak
       DB_PASSWORD: keycloak
+      KEYCLOAK_URL: "http://127.0.0.1:8080"
+      KEYCLOAK_REALM: "my-song-race-realm"
+      KEYCLOAK_CLIENT_ID: "my-scd-client"
+      SECRET_KEY: "dev-secret-key"
+      ELASTICSEARCH_URL: "http://elasticsearch:9200"
+      LIBRARY_API_URL: "http://mylibrary:2000"
+      ADDRESS: "127.0.0.1"
     deploy:
-      replicas: 3
+      replicas: 1
 
   mylibrary:
     image: mylibrary
+    build:
+      context: ./library
+      dockerfile: Dockerfile
     command: python library.py
     volumes:
       - .:/audio
     networks:
       - mynet
-    ports:
-      - "2000:2000"
+    # ports:
+      # - "2000:2000"
     deploy:
       replicas: 1
 
@@ -108,6 +121,26 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+  
+  kong:
+    image: kong:3.6
+    networks:
+      - mynet
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /kong/declarative/kong.yml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+    volumes:
+      - ./kong-config:/kong/declarative
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    deploy:
+      replicas: 1
 
 volumes:
   postgres_data:

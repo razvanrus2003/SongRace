@@ -1,0 +1,21 @@
+_format_version: "3.0"
+
+services:
+  - name: myapp
+    url: http://myapp:5000
+    routes:
+      - name: myapp-route
+        paths:
+          - /api
+        strip_path: true
+      - name: myapp-root-route
+        paths:
+          - /
+        strip_path: true
+  - name: mylibrary
+    url: http://mylibrary:2000
+    routes:
+      - name: mylibrary-route
+        paths:
+          - /library
+        strip_path: true

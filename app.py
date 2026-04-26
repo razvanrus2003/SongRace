@@ -38,6 +38,7 @@ LIBRARY_URL = os.getenv("LIBRARY_API_URL", "http://library:2000")
 
 engine = create_engine(DB_URL, echo=False, 
                         pool_size=500,
+                        pool_pre_ping=True,        # tests connection before using it
                         max_overflow=40,
                         pool_timeout=3,
                         pool_recycle=1800
@@ -47,7 +48,10 @@ lobby = Blueprint('lobby', __name__)
 gameBP = Blueprint('game', __name__)
 
 Base = declarative_base()
-es = Elasticsearch(os.getenv("ELASTICSEARCH_URL", "http://127.0.0.1:9200"), verify_certs=False)
+es = Elasticsearch(
+    os.getenv("ELASTICSEARCH_URL") or "http://elasticsearch:9200",
+    verify_certs=False
+)
 
 class Lobby(Base):
     __tablename__ = 'lobbies'
@@ -83,9 +87,9 @@ Base.metadata.create_all(bind=engine)
 KEYCLOAK_URL = os.getenv("KEYCLOAK_URL")
 REALM = os.getenv("KEYCLOAK_REALM")
 CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID")
-PORT =5000
+PORT = 5000
 ADDRESS = os.getenv("ADDRESS", "127.0.0.1")
-REDIRECT_URI = f"http://{ADDRESS}:{PORT}/callback"
+REDIRECT_URI = f"http://{ADDRESS}:8000/api/callback"
 
 # Keycloak endpoints
 AUTH_URL = f"{KEYCLOAK_URL}/realms/{REALM}/protocol/openid-connect/auth"
@@ -469,6 +473,21 @@ def admin_dashboard():
     username = session["user"].get("preferred_username")
     return render_template("admin_dashboard.html", username=username)
 
+# @app.route("/logout")
+# def logout():
+#     id_token = session.get("id_token")
+#     session.clear()
+
+#     logout_redirect = (
+#         f"{LOGOUT_URL}?client_id={CLIENT_ID}"
+#         f"&post_logout_redirect_uri={url_for('home', _external=True)}"
+#     )
+
+#     if id_token:
+#         logout_redirect += f"&id_token_hint={id_token}"
+
+#     return redirect(logout_redirect)
+
 @app.route("/logout")
 def logout():
     id_token = session.get("id_token")
@@ -476,11 +495,9 @@ def logout():
 
     logout_redirect = (
         f"{LOGOUT_URL}?client_id={CLIENT_ID}"
-        f"&post_logout_redirect_uri={url_for('home', _external=True)}"
+        f"&post_logout_redirect_uri=http://127.0.0.1:8000/api"
+        f"&id_token_hint={id_token}"
     )
-
-    if id_token:
-        logout_redirect += f"&id_token_hint={id_token}"
 
     return redirect(logout_redirect)
 
