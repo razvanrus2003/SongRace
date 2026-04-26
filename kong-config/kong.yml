@@ -19,3 +19,10 @@ services:
         paths:
           - /library
         strip_path: true
+  - name: frontend
+    url: http://frontend:3001
+    routes:
+      - name: frontend-route
+        paths:
+          - /
+        strip_path: false

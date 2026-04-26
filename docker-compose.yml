@@ -166,6 +166,18 @@ services:
     deploy:
       replicas: 1
 
+  frontend:
+    image: frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    networks:
+      - mynet
+    ports:
+      - "3001:3001"
+    deploy:
+      replicas: 1
+
 volumes:
   postgres_data:
   esdata:
