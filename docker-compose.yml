@@ -118,9 +118,33 @@ services:
       - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/frontend-requests.json:/etc/grafana/provisioning/dashboards/frontend-requests.json:ro
+      - ./grafana/init-dashboard.sh:/init-dashboard.sh:ro
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+    command: >
+      sh -c "/run.sh & 
+      sleep 5 && 
+      /bin/bash /init-dashboard.sh && 
+      wait"
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    networks:
+      - mynet
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    deploy:
+      replicas: 1
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yml
   
   kong:
     image: kong:3.6
@@ -183,4 +207,9 @@ volumes:
   esdata:
   grafana_data:
   portainer_data:
+  prometheus_data:
+
+configs:
+  prometheus_config:
+    file: ./prometheus/prometheus.yml
 
