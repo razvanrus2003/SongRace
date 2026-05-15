@@ -8,10 +8,6 @@ services:
         paths:
           - /api
         strip_path: true
-      - name: myapp-root-route
-        paths:
-          - /
-        strip_path: true
   - name: mylibrary
     url: http://mylibrary:2000
     routes:
