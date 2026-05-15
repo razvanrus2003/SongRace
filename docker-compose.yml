@@ -1,216 +1,226 @@
-
 networks:
-  mynet:
-    driver: overlay
+    frontend:
+        driver: overlay
+    backend:
+        driver: overlay
+    monitoring:
+        driver: overlay
+    management:
+        driver: overlay
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    networks:
-      - mynet
-    environment:
-      POSTGRES_DB: keycloak
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: keycloak
-      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    command: >
-      postgres
-      -c log_statement=all
-      -c log_duration=on
-      -c log_connections=on
-      -c log_disconnections=on
-      -c log_line_prefix='%m [%p] %u@%d '
-    ports:
-      - "5432:5432"
+    postgres:
+        image: postgres:15-alpine
+        networks:
+            - backend
+        environment:
+            POSTGRES_DB: keycloak
+            POSTGRES_USER: keycloak
+            POSTGRES_PASSWORD: keycloak
+            POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        command: >
+            postgres
+            -c log_statement=all
+            -c log_duration=on
+            -c log_connections=on
+            -c log_disconnections=on
+            -c log_line_prefix='%m [%p] %u@%d '
+        ports:
+            - "5432:5432"
 
-  keycloak:
-    image: quay.io/keycloak/keycloak:25.0.0
-    networks:
-      - mynet
-    command: start-dev --import-realm
-    environment:
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
-      KC_DB_PORT: 5432
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: keycloak
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-    volumes:
-      - ./keycloak-config:/opt/keycloak/data/import
-    ports:
-      - "8080:8080"
-    depends_on:
-      - postgres
-    
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
-    environment:
-      - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
-      - xpack.security.enabled=false
-    networks:
-      - mynet
-    ports:
-      - "9200:9200"
-    volumes:
-      - esdata:/usr/share/elasticsearch/data
-    deploy:
-      replicas: 1
-      resources:
-        limits:
-          memory: 1g
+    keycloak:
+        image: quay.io/keycloak/keycloak:25.0.0
+        networks:
+            - frontend
+            - backend
+        command: start-dev --import-realm
+        environment:
+            KC_DB: postgres
+            KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+            KC_DB_PORT: 5432
+            KC_DB_USERNAME: keycloak
+            KC_DB_PASSWORD: keycloak
+            KEYCLOAK_ADMIN: admin
+            KEYCLOAK_ADMIN_PASSWORD: admin
+        volumes:
+            - ./keycloak-config:/opt/keycloak/data/import
+        ports:
+            - "8080:8080"
+        depends_on:
+            - postgres
 
-  myapp:
-    image: myapp
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: python app.py
-    networks:
-      - mynet
-    volumes:
-      - .:/app
-    # ports:
-      # - "5000:5000"
-    depends_on:
-      - keycloak
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: keycloak
-      DB_USER: keycloak
-      DB_PASSWORD: keycloak
-      KEYCLOAK_URL: "http://127.0.0.1:8080"
-      KEYCLOAK_REALM: "my-song-race-realm"
-      KEYCLOAK_CLIENT_ID: "my-scd-client"
-      SECRET_KEY: "dev-secret-key"
-      ELASTICSEARCH_URL: "http://elasticsearch:9200"
-      LIBRARY_API_URL: "http://mylibrary:2000"
-      ADDRESS: "127.0.0.1"
-      FRONTEND_URL: "http://127.0.0.1:8000/"
-    deploy:
-      replicas: 1
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+        environment:
+            - discovery.type=single-node
+            - ES_JAVA_OPTS=-Xms512m -Xmx512m
+            - xpack.security.enabled=false
+        networks:
+            - backend
+        ports:
+            - "9200:9200"
+        volumes:
+            - esdata:/usr/share/elasticsearch/data
+        deploy:
+            replicas: 1
+            resources:
+                limits:
+                    memory: 1g
 
-  mylibrary:
-    image: mylibrary
-    build:
-      context: ./library
-      dockerfile: Dockerfile
-    command: python library.py
-    volumes:
-      - .:/audio
-    networks:
-      - mynet
-    # ports:
-      # - "2000:2000"
-    deploy:
-      replicas: 1
+    myapp:
+        image: myapp
+        build:
+            context: .
+            dockerfile: Dockerfile
+        command: python app.py
+        networks:
+            - frontend
+            - backend
+        volumes:
+            - .:/app
+        # ports:
+        # - "5000:5000"
+        depends_on:
+            - keycloak
+        environment:
+            DB_HOST: postgres
+            DB_PORT: 5432
+            DB_NAME: keycloak
+            DB_USER: keycloak
+            DB_PASSWORD: keycloak
+            KEYCLOAK_URL: "http://127.0.0.1:8080"
+            KEYCLOAK_REALM: "my-song-race-realm"
+            KEYCLOAK_CLIENT_ID: "my-scd-client"
+            SECRET_KEY: "dev-secret-key"
+            ELASTICSEARCH_URL: "http://elasticsearch:9200"
+            LIBRARY_API_URL: "http://mylibrary:2000"
+            ADDRESS: "127.0.0.1"
+            FRONTEND_URL: "http://127.0.0.1:8000/"
+        deploy:
+            replicas: 1
 
-  grafana:
-    image: grafana/grafana:latest
-    networks:
-      - mynet
-    deploy:
-      replicas: 1
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/frontend-requests.json:/etc/grafana/provisioning/dashboards/frontend-requests.json:ro
-      - ./grafana/init-dashboard.sh:/init-dashboard.sh:ro
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    command: >
-      sh -c "/run.sh & 
-      sleep 5 && 
-      /bin/bash /init-dashboard.sh && 
-      wait"
+    mylibrary:
+        image: mylibrary
+        build:
+            context: ./library
+            dockerfile: Dockerfile
+        command: python library.py
+        volumes:
+            - .:/audio
+        networks:
+            - frontend
+            - backend
+        # ports:
+        # - "2000:2000"
+        deploy:
+            replicas: 1
 
-  prometheus:
-    image: prom/prometheus:v2.55.1
-    networks:
-      - mynet
-    ports:
-      - "9090:9090"
-    volumes:
-      - prometheus_data:/prometheus
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-    deploy:
-      replicas: 1
-    configs:
-      - source: prometheus_config
-        target: /etc/prometheus/prometheus.yml
-  
-  kong:
-    image: kong:3.6
-    networks:
-      - mynet
-    environment:
-      KONG_DATABASE: "off"
-      KONG_DECLARATIVE_CONFIG: /kong/declarative/kong.yml
-      KONG_PROXY_ACCESS_LOG: /dev/stdout
-      KONG_ADMIN_ACCESS_LOG: /dev/stdout
-      KONG_PROXY_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_ERROR_LOG: /dev/stderr
-      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
-    volumes:
-      - ./kong-config:/kong/declarative
-    ports:
-      - "8000:8000"
-      - "8001:8001"
-    deploy:
-      replicas: 1
+    grafana:
+        image: grafana/grafana:latest
+        networks:
+            - monitoring
+        deploy:
+            replicas: 1
+        ports:
+            - "3000:3000"
+        volumes:
+            - grafana_data:/var/lib/grafana
+            - ./grafana/frontend-requests.json:/etc/grafana/provisioning/dashboards/frontend-requests.json:ro
+            - ./grafana/init-dashboard.sh:/init-dashboard.sh:ro
+        environment:
+            - GF_SECURITY_ADMIN_USER=admin
+            - GF_SECURITY_ADMIN_PASSWORD=admin
+        command: >
+            sh -c "/run.sh &
+            sleep 5 &&
+            /bin/bash /init-dashboard.sh &&
+            wait"
 
-  portainer:
-    image: portainer/portainer-ce
-    networks:
-      - mynet
-    ports:
-      - "9000:9000"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
+    prometheus:
+        image: prom/prometheus:v2.55.1
+        networks:
+            - monitoring
+            - backend
+        ports:
+            - "9090:9090"
+        volumes:
+            - prometheus_data:/prometheus
+        command:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus"
+        deploy:
+            replicas: 1
+        configs:
+            - source: prometheus_config
+              target: /etc/prometheus/prometheus.yml
 
-  adminer:
-    image: adminer
-    networks:
-      - mynet
-    ports:
-      - "8081:8080"
-    deploy:
-      replicas: 1
+    kong:
+        image: kong:3.6
+        networks:
+            - frontend
+        environment:
+            KONG_DATABASE: "off"
+            KONG_DECLARATIVE_CONFIG: /kong/declarative/kong.yml
+            KONG_PROXY_ACCESS_LOG: /dev/stdout
+            KONG_ADMIN_ACCESS_LOG: /dev/stdout
+            KONG_PROXY_ERROR_LOG: /dev/stderr
+            KONG_ADMIN_ERROR_LOG: /dev/stderr
+            KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+        volumes:
+            - ./kong-config:/kong/declarative
+        ports:
+            - "8000:8000"
+            - "8001:8001"
+        deploy:
+            replicas: 1
 
-  frontend:
-    image: frontend
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    networks:
-      - mynet
-    ports:
-      - "3001:3001"
-    deploy:
-      replicas: 1
+    portainer:
+        image: portainer/portainer-ce
+        networks:
+            - management
+        ports:
+            - "9000:9000"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - portainer_data:/data
+        deploy:
+            replicas: 1
+            placement:
+                constraints:
+                    - node.role == manager
+
+    adminer:
+        image: adminer
+        networks:
+            - management
+            - backend
+        ports:
+            - "8081:8080"
+        deploy:
+            replicas: 1
+
+    frontend:
+        image: frontend
+        build:
+            context: ./frontend
+            dockerfile: Dockerfile
+        networks:
+            - frontend
+            - backend
+        ports:
+            - "3001:3001"
+        deploy:
+            replicas: 1
 
 volumes:
-  postgres_data:
-  esdata:
-  grafana_data:
-  portainer_data:
-  prometheus_data:
+    postgres_data:
+    esdata:
+    grafana_data:
+    portainer_data:
+    prometheus_data:
 
 configs:
-  prometheus_config:
-    file: ./prometheus/prometheus.yml
-
+    prometheus_config:
+        file: ./prometheus/prometheus.yml
