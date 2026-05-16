@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { debounce } from 'lodash'; // Import lodash for debouncing
 import {
   Stack,
   Title,
@@ -50,23 +51,28 @@ export function GamePage() {
     }
   }, [navigate])
 
-  useEffect(() => {
-    if (!gameData) return
-    const interval = setInterval(async () => {
-      try {
-        const res = await api.updateGame(lyrics, gameData.song.id)
+  async function updateGame (lyrics, songId) {
+    const res = await api.updateGame(lyrics, songId)
         setScore(res.score)
         setPlayers(res.players || [])
         setStatus(res.status)
         if (res.status === 2 && audioRef.current?.paused) {
           audioRef.current.play().catch(() => {})
         }
+  }
+
+  useEffect(() => {
+    if (!gameData) return
+    updateGame(lyrics, gameData.song.id) // Initial update when lyrics change
+    const interval = setInterval(async () => {
+      try {
+        await updateGame(lyrics, gameData.song.id)
       } catch {
         // swallow polling errors
       }
     }, 1000)
     return () => clearInterval(interval)
-  }, [gameData, lyrics])
+  }, [lyrics])
 
   const handleReady = async () => {
     try {
@@ -155,8 +161,8 @@ export function GamePage() {
           <Progress value={Math.min(score / 5, 100)} color="violet" />
           <Textarea
             placeholder="Type the lyrics you can hear or remember..."
-            value={lyrics}
-            onChange={(e) => setLyrics(e.currentTarget.value)}
+            value={lyrics} // Use the immediate state for the Textarea value
+            onChange={e => setLyrics(e.currentTarget.value)}
             autosize
             minRows={6}
             maxRows={12}
