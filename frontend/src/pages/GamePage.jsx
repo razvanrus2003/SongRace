@@ -1,8 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-<<<<<<< HEAD
-=======
 import { debounce } from 'lodash'; // Import lodash for debouncing
->>>>>>> caee497dbab89823cb690d45f1fbbc3f38b6599d
 import {
   Stack,
   Title,
@@ -54,30 +51,14 @@ export function GamePage() {
     }
   }, [navigate])
 
-<<<<<<< HEAD
-  useEffect(() => {
-    if (!gameData) return
-    const interval = setInterval(async () => {
-      try {
-        const res = await api.updateGame(lyrics, gameData.song.id)
-=======
   async function updateGame (lyrics, songId) {
     const res = await api.updateGame(lyrics, songId)
->>>>>>> caee497dbab89823cb690d45f1fbbc3f38b6599d
         setScore(res.score)
         setPlayers(res.players || [])
         setStatus(res.status)
         if (res.status === 2 && audioRef.current?.paused) {
           audioRef.current.play().catch(() => {})
         }
-<<<<<<< HEAD
-      } catch {
-        // swallow polling errors
-      }
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [gameData, lyrics])
-=======
   }
 
   useEffect(() => {
@@ -93,7 +74,6 @@ export function GamePage() {
     }, 1000)
     return () => clearInterval(interval)
   }, [lyrics])
->>>>>>> caee497dbab89823cb690d45f1fbbc3f38b6599d
 
   const handleReady = async () => {
     try {
@@ -182,13 +162,8 @@ export function GamePage() {
           <Progress value={Math.min(score / 5, 100)} color="violet" />
           <Textarea
             placeholder="Type the lyrics you can hear or remember..."
-<<<<<<< HEAD
-            value={lyrics}
-            onChange={(e) => setLyrics(e.currentTarget.value)}
-=======
             value={lyrics} // Use the immediate state for the Textarea value
             onChange={e => setLyrics(e.currentTarget.value)}
->>>>>>> caee497dbab89823cb690d45f1fbbc3f38b6599d
             autosize
             minRows={6}
             maxRows={12}
@@ -244,8 +219,4 @@ export function GamePage() {
       </Card>
     </Stack>
   )
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> caee497dbab89823cb690d45f1fbbc3f38b6599d
