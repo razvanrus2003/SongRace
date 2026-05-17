@@ -69,6 +69,7 @@ export function GamePage() {
         await updateGame(lyrics, gameData.song.id)
       } catch {
         // swallow polling errors
+        
       }
     }, 1000)
     return () => clearInterval(interval)
