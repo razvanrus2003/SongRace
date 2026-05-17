@@ -20,12 +20,8 @@
     "prom-client": "^15.1.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-<<<<<<< HEAD
-    "react-router-dom": "^6.27.0"
-=======
     "react-router-dom": "^6.27.0",
     "lodash": "^4.17.21"
->>>>>>> caee497dbab89823cb690d45f1fbbc3f38b6599d
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
