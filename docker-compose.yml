@@ -80,13 +80,8 @@ services:
             - backend
         volumes:
             - .:/app
-<<<<<<< HEAD
-        # ports:
-        # - "5000:5000"
-=======
         ports:
         - "5000:5000"
->>>>>>> caee497dbab89823cb690d45f1fbbc3f38b6599d
         depends_on:
             - keycloak
         environment:
@@ -117,13 +112,8 @@ services:
         networks:
             - frontend
             - backend
-<<<<<<< HEAD
-        # ports:
-        # - "2000:2000"
-=======
         ports:
         - "2000:2000"
->>>>>>> caee497dbab89823cb690d45f1fbbc3f38b6599d
         deploy:
             replicas: 1
 
