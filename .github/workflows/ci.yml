@@ -1,112 +1,44 @@
-name: CI/CD Pipeline with Docker
+name: CI/CD Pipeline with Docker Swarm
 
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
-  backend:
-    name: Backend CI with Docker
+  build:
+    name: Build Docker Images
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Build and Test Backend
+      - name: Build Backend Image
         run: |
           docker build -t backend-image -f Dockerfile .
-          docker run --rm backend-image # Add test commands inside the Dockerfile or override here
 
-  frontend:
-    name: Frontend CI with Docker
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Build and Test Frontend
+      - name: Build Frontend Image
         run: |
           docker build -t frontend-image -f frontend/Dockerfile frontend
-          docker run --rm frontend-image # Add test commands inside the Dockerfile or override here
 
-  deploy:
-    name: Deploy with Docker
-    runs-on: ubuntu-latest
-    needs: [backend, frontend]
-
-    steps:
-      - name: Deploy Application
-        run: |
-          # Add your Docker Compose or deployment commands here
-          echo "Deployment step not configured"
-
-  library:
-    name: Library CI with Docker
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Build and Test Library
+      - name: Build Library Image
         run: |
           docker build -t library-image -f library/Dockerfile library
-          docker run --rm library-image # Add test commands inside the Dockerfile or override here
 
-  grafana:
-    name: Grafana CI with Docker
+  deploy:
+    name: Deploy with Docker Swarm
     runs-on: ubuntu-latest
+    needs: build
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Build and Test Grafana
+      - name: Deploy Stack with Docker Swarm
         run: |
-          docker build -t grafana-image -f grafana/Dockerfile grafana
-          docker run --rm grafana-image # Add test commands inside the Dockerfile or override here
-
-  prometheus:
-    name: Prometheus CI with Docker
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Build and Test Prometheus
-        run: |
-          docker build -t prometheus-image -f prometheus/Dockerfile prometheus
-          docker run --rm prometheus-image # Add test commands inside the Dockerfile or override here
-
-  keycloak:
-    name: Keycloak CI with Docker
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Build and Test Keycloak
-        run: |
-          docker build -t keycloak-image -f keycloak-config/Dockerfile keycloak-config
-          docker run --rm keycloak-image # Add test commands inside the Dockerfile or override here
-
-  kong:
-    name: Kong CI with Docker
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Build and Test Kong
-        run: |
-          docker build -t kong-image -f kong-config/Dockerfile kong-config
-          docker run --rm kong-image # Add test commands inside the Dockerfile or override here
+          docker swarm init || true
+          docker stack deploy -c docker-compose.yml songrace-stack
