@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { debounce } from 'lodash'; // Import lodash for debouncing
 import {
   Stack,
   Title,
@@ -69,18 +68,29 @@ export function GamePage() {
         await updateGame(lyrics, gameData.song.id)
       } catch {
         // swallow polling errors
-        
+
       }
     }, 1000)
     return () => clearInterval(interval)
-  }, [lyrics])
+  }, [gameData, lyrics])
+
+  useEffect(() => {
+    if (status === 2 && audioRef.current?.paused) {
+      audioRef.current.play().catch(() => {})
+    }
+  }, [status])
 
   const handleReady = async () => {
+    console.log('Ready clicked')
     try {
-      await api.ready()
+      const res = await api.ready()
       setReady(true)
+      setStatus(res.status)
+      if (res.status === 2 && audioRef.current?.paused) {
+        audioRef.current.play().catch(() => {})
+      }
       notifications.show({ title: 'Ready!', message: 'Waiting for other players...', color: 'green' })
-    } catch {
+    } catch (error) {
       notifications.show({ title: 'Error', message: 'Could not send ready signal', color: 'red' })
     }
   }
