@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+    manager:
+        image: docker:dind
+        privileged: true
+        environment:
+            DOCKER_TLS_CERTDIR: ""
+        volumes:
+            - ./docker-compose.yml:/docker-compose.yml
+            - ./kong-config:/kong-config
+            - ./keycloak-config:/keycloak-config
+            - ./prometheus-config:/prometheus-config
+        ports:
+            - "2375:2375"
+        command: dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --tls=false
+
+    worker1:
+        image: docker:dind
+        privileged: true
+        environment:
+            DOCKER_TLS_CERTDIR: ""
+        command: dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --tls=false
+
+    worker2:
+        image: docker:dind
+        privileged: true
+        environment:
+            DOCKER_TLS_CERTDIR: ""
+        command: dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --tls=false
