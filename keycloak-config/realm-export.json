@@ -2,12 +2,13 @@
   "realm": "my-song-race-realm",
   "enabled": true,
   "sslRequired": "external",
-  "registrationAllowed": false,
+  "registrationAllowed": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": false,
   "editUsernameAllowed": false,
   "bruteForceProtected": true,
+  "rememberMe": true,
   "clients": [
     {
       "clientId": "my-scd-client",

@@ -1,0 +1,44 @@
+name: CI/CD Pipeline with Docker Swarm
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Backend Image
+        run: |
+          docker build -t backend-image -f Dockerfile .
+
+      - name: Build Frontend Image
+        run: |
+          docker build -t frontend-image -f frontend/Dockerfile frontend
+
+      - name: Build Library Image
+        run: |
+          docker build -t library-image -f library/Dockerfile library
+
+  deploy:
+    name: Deploy with Docker Swarm
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy Stack with Docker Swarm
+        run: |
+          docker swarm init || true
+          docker stack deploy -c docker-compose.yml songrace-stack
